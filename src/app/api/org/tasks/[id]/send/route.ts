@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import type { PrismaClient } from "@prisma/client";
 import { getSessionUserId } from "@/lib/session";
 
 type ProductionRequirement = "denmark" | "eu" | "global";
@@ -93,30 +93,31 @@ export async function POST(
     return NextResponse.json({ error: "Ingen matchende leverandører (MVP)" }, { status: 400 });
   }
 
-  await prisma.$transaction(async (tx) => {
-    await tx.task.update({
-      where: { id: task.id },
-      data: { status: "sent", sentAt: new Date() },
-    });
-
-    for (const s of matched) {
-      await tx.taskInvitation.create({
-        data: { taskId: task.id, supplierId: s.id, status: "sent" },
-      });
-    }
-
-    await tx.auditLog.create({
-      data: {
-        organizationId: user.organizationId,
-        actorUserId: userId,
-        actorType: "org_user",
-        action: "task.sent_to_suppliers",
-        entityType: "task",
-        entityId: task.id,
-        metadataJson: { invitedSuppliers: matched.length },
-      },
-    });
+  aawait prisma.$transaction(async (tx: PrismaClient) => {
+  await tx.task.update({
+    where: { id: task.id },
+    data: { status: "sent", sentAt: new Date() },
   });
+
+  for (const s of matched) {
+    await tx.taskInvitation.create({
+      data: { taskId: task.id, supplierId: s.id, status: "sent" },
+    });
+  }
+
+  await tx.auditLog.create({
+    data: {
+      organizationId: user.organizationId,
+      actorUserId: userId,
+      actorType: "org_user",
+      action: "task.sent_to_suppliers",
+      entityType: "task",
+      entityId: task.id,
+      metadataJson: { invitedSuppliers: matched.length },
+    },
+  });
+});
+
 
   return NextResponse.json({ ok: true, invited: matched.length });
 }
