@@ -12,14 +12,6 @@ export async function POST(req: Request) {
   const body = await req.json().catch(() => null) as any;
   if (!body?.title || !body?.item || !body?.delivery) return NextResponse.json({ error: "Manglende felter" }, { status: 400 });
 
-  // Backwards compatible mapping (older UI values) -> Prisma enum keys
-  const printSides = (() => {
-    const v = body?.item?.printSides;
-    if (v === "_4_0") return "FOUR_ZERO";
-    if (v === "_4_4") return "FOUR_FOUR";
-    return v ?? "FOUR_ZERO";
-  })();
-
   const task = await prisma.task.create({
     data: {
       organizationId: user.organizationId,
@@ -39,7 +31,7 @@ export async function POST(req: Request) {
               shape: "rectangle",
               material: body.item.material,
               thicknessMm: "5",
-              printSides,
+              printSides: body.item.printSides,
               surface: "uv_protected",
               fixingType: "screws_standoffs",
               supplierSuggestFixing: false,

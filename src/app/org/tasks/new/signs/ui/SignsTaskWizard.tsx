@@ -11,7 +11,6 @@ export default function SignsTaskWizard() {
   const [quantity, setQuantity] = useState(1);
   const [signType, setSignType] = useState("outdoor");
   const [material, setMaterial] = useState("alu_dibond");
-  // Matches Prisma enum keys (mapped to DB values via @map in schema.prisma)
   const [printSides, setPrintSides] = useState("FOUR_ZERO");
   const [dropoffType, setDropoffType] = useState("indoors_storage");
   const [dropoffDesc, setDropoffDesc] = useState("Kælderdepot, rum 0.14");
