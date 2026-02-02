@@ -11,7 +11,8 @@ export default function SignsTaskWizard() {
   const [quantity, setQuantity] = useState(1);
   const [signType, setSignType] = useState("outdoor");
   const [material, setMaterial] = useState("alu_dibond");
-  const [printSides, setPrintSides] = useState("_4_0");
+  // Matches Prisma enum keys (mapped to DB values via @map in schema.prisma)
+  const [printSides, setPrintSides] = useState("FOUR_ZERO");
   const [dropoffType, setDropoffType] = useState("indoors_storage");
   const [dropoffDesc, setDropoffDesc] = useState("Kælderdepot, rum 0.14");
   const [address, setAddress] = useState("");
@@ -108,8 +109,8 @@ export default function SignsTaskWizard() {
           <label>
             Tryk<br />
             <select value={printSides} onChange={(e) => setPrintSides(e.target.value)} style={{ width: "100%", padding: 8 }}>
-              <option value="_4_0">4+0</option>
-              <option value="_4_4">4+4</option>
+              <option value="FOUR_ZERO">4+0</option>
+              <option value="FOUR_FOUR">4+4</option>
             </select>
           </label>
 

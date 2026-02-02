@@ -91,8 +91,8 @@ enum Material {
 }
 
 enum PrintSides {
-  _4_0
-  _4_4
+  FOUR_ZERO @map("_4_0")
+  FOUR_FOUR @map("_4_4")
 }
 
 enum Surface {
@@ -118,9 +118,9 @@ enum ArtworkStatus {
 }
 
 enum ExpectedLifetime {
-  _0_6_months
-  _1_3_years
-  _5_plus_years
+  MONTHS_0_6   @map("_0_6_months")
+  YEARS_1_3    @map("_1_3_years")
+  YEARS_5_PLUS @map("_5_plus_years")
 }
 
 enum DropoffLocationType {
