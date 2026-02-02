@@ -1,0 +1,441 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum RoleKey {
+  org_admin
+  org_user
+  supplier_user
+}
+
+enum SupplierStatus {
+  pending
+  approved
+  rejected
+  suspended
+}
+
+enum Capability {
+  signs
+  print
+  rollups
+  graphic_design
+  montage
+}
+
+enum CoverageType {
+  nationwide
+  regions
+  municipalities
+}
+
+enum ProductionCountryType {
+  denmark
+  eu
+  global
+}
+
+enum TaskCategory {
+  signs
+}
+
+enum TaskStatus {
+  draft
+  sent
+  awarded
+  closed
+}
+
+enum SignType {
+  indoor
+  outdoor
+  facade
+  wayfinding
+  temporary
+  information
+  safety
+  special
+}
+
+enum FormatType {
+  standard
+  custom
+}
+
+enum StandardFormat {
+  A4
+  A3
+  A2
+  A1
+}
+
+enum Shape {
+  rectangle
+  square
+  round
+  custom_shape
+}
+
+enum Material {
+  alu_dibond
+  pvc_foamex
+  acrylic_plexi
+  aluminium
+  foil
+  other
+}
+
+enum PrintSides {
+  _4_0
+  _4_4
+}
+
+enum Surface {
+  matte
+  gloss
+  anti_reflective
+  uv_protected
+}
+
+enum FixingType {
+  none
+  screws_standoffs
+  rail_hanging
+  tape_glue
+  ground_posts
+  special_brackets
+}
+
+enum ArtworkStatus {
+  ready_files
+  partial_assets
+  design_needed
+}
+
+enum ExpectedLifetime {
+  _0_6_months
+  _1_3_years
+  _5_plus_years
+}
+
+enum DropoffLocationType {
+  indoors_storage
+  indoors_specific_room
+  outdoors_covered
+  outdoors_uncovered
+  goods_inward
+  reception
+}
+
+enum AuditActorType {
+  org_user
+  supplier_user
+  system
+}
+
+model Organization {
+  id         String   @id @default(cuid())
+  name       String
+  cvr        String?
+  defaultEAN String?
+  users      User[]
+  tasks      Task[]
+  auditLogs  AuditLog[]
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model User {
+  id             String   @id @default(cuid())
+  organizationId String?
+  organization   Organization? @relation(fields: [organizationId], references: [id])
+  email          String   @unique
+  passwordHash   String?
+  fullName       String
+  phone          String?
+  isActive       Boolean  @default(true)
+  lastLoginAt    DateTime?
+
+  roles          UserRole[]
+  supplierUsers  SupplierUser[]
+  files          File[]   @relation("UserFiles")
+  createdTasks   Task[]   @relation("TasksCreatedBy")
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model Role {
+  id    String  @id @default(cuid())
+  key   RoleKey @unique
+  name  String
+  users UserRole[]
+}
+
+model UserRole {
+  userId String
+  roleId String
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role   Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@id([userId, roleId])
+}
+
+model Supplier {
+  id               String         @id @default(cuid())
+  name             String
+  cvr              String?
+  email            String
+  phone            String?
+  website          String?
+  status           SupplierStatus @default(pending)
+  approvedAt       DateTime?
+  approvedByUserId String?
+  approvedByUser   User? @relation(fields: [approvedByUserId], references: [id])
+  capabilities     SupplierCapability[]
+  coverage         SupplierCoverage[]
+  production       SupplierProduction?
+  montage          SupplierMontage?
+  users            SupplierUser[]
+  invitations      TaskInvitation[]
+  files            File[] @relation("SupplierFiles")
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}
+
+model SupplierUser {
+  supplierId String
+  userId     String
+  supplier   Supplier @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([supplierId, userId])
+}
+
+model SupplierCapability {
+  supplierId  String
+  capability  Capability
+  supplier    Supplier @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+  @@id([supplierId, capability])
+}
+
+model SupplierCoverage {
+  id            String       @id @default(cuid())
+  supplierId    String
+  coverageType  CoverageType
+  coverageJson  Json
+  supplier      Supplier @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model SupplierProduction {
+  supplierId                    String @id
+  productionCountryType         ProductionCountryType
+  productionDetails             String?
+  documentationPossible         Boolean @default(false)
+  supplier                      Supplier @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+}
+
+model SupplierMontage {
+  supplierId           String @id
+  offersMontage        Boolean @default(false)
+  usesSubcontractors   Boolean @default(false)
+  montageNotes         String?
+  supplier             Supplier @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+}
+
+model Task {
+  id              String     @id @default(cuid())
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  title           String
+  category        TaskCategory @default(signs)
+  status          TaskStatus   @default(draft)
+  createdByUserId String
+  createdByUser   User @relation("TasksCreatedBy", fields: [createdByUserId], references: [id])
+  sentAt          DateTime?
+
+  items           TaskItem[]
+  delivery        Delivery?
+  montage         Montage?
+  requirements    TaskRequirement?
+  invitations     TaskInvitation[]
+  files           File[] @relation("TaskFiles")
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model TaskItem {
+  id        String   @id @default(cuid())
+  taskId    String
+  task      Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  itemType  String   @default("sign_item")
+  quantity  Int
+  signItem  SignItem?
+  files     TaskItemFile[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model SignItem {
+  id                 String   @id @default(cuid())
+  taskItemId          String   @unique
+  taskItem            TaskItem @relation(fields: [taskItemId], references: [id], onDelete: Cascade)
+
+  signType            SignType
+  formatType          FormatType
+  standardFormat      StandardFormat?
+  widthMm             Int?
+  heightMm            Int?
+  shape               Shape
+  shapeFileId         String?
+
+  material            Material
+  materialOtherText   String?
+  thicknessMm         String
+  thicknessOtherText  String?
+
+  printSides          PrintSides
+  surface             Surface
+  fixingType          FixingType
+  supplierSuggestFixing Boolean @default(false)
+
+  artworkStatus       ArtworkStatus
+  artworkRequiresApproval Boolean @default(true)
+  artworkNotes        String?
+
+  expectedLifetime    ExpectedLifetime
+
+  shapeFile           File? @relation("ShapeFile", fields: [shapeFileId], references: [id])
+}
+
+model Delivery {
+  id                     String @id @default(cuid())
+  taskId                  String @unique
+  task                    Task   @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  addressText             String
+  sameAsMontageAddress    Boolean @default(false)
+  deliveryWindowFrom      String?
+  deliveryWindowTo        String?
+  avoidTimeText           String?
+
+  dropoffLocationType     DropoffLocationType
+  dropoffLocationDescription String
+
+  accessKeyRequired       Boolean @default(false)
+  staffReceivesDelivery   Boolean @default(false)
+  freeAccessOpeningHours  Boolean @default(false)
+  outsideOpeningHours     Boolean @default(false)
+  callContactOnArrival    Boolean @default(true)
+
+  onPallet                Boolean @default(false)
+  doNotStack              Boolean @default(false)
+  twoPersonRequired       Boolean @default(false)
+  palletJackOnSite        Boolean @default(false)
+  driverMustBringPalletJack Boolean @default(false)
+
+  receiptRequired         Boolean @default(false)
+  photoRequired           Boolean @default(false)
+  deliveryDocRequired     Boolean @default(false)
+
+  deliveryContactName     String
+  deliveryContactPhone    String
+}
+
+model Montage {
+  id                    String @id @default(cuid())
+  taskId                 String @unique
+  task                   Task   @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  montageRequested        Boolean @default(false)
+  addressText             String?
+  isOutdoor               Boolean @default(false)
+  requiresLiftOrScaffold  Boolean @default(false)
+  outsideOpeningHours     Boolean @default(false)
+  multipleLocationsFileId String?
+  notes                   String?
+
+  multipleLocationsFile   File? @relation("LocationListFile", fields: [multipleLocationsFileId], references: [id])
+}
+
+model TaskRequirement {
+  taskId                       String @id
+  task                         Task   @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  productionRequirement        ProductionCountryType @default(eu)
+  productionDocumentationRequired Boolean @default(false)
+  allowSplitProduction         Boolean @default(false)
+
+  pvcFree                      Boolean @default(false)
+  recyclableMaterials          Boolean @default(false)
+  certifiedProduction          Boolean @default(false)
+  noEnvironmentalRequirements  Boolean @default(true)
+}
+
+model TaskInvitation {
+  id        String @id @default(cuid())
+  taskId    String
+  supplierId String
+  status    String @default("sent") // sent, viewed, offer_submitted (MVP)
+  sentAt    DateTime @default(now())
+  viewedAt  DateTime?
+
+  task      Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  supplier  Supplier @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+
+  @@unique([taskId, supplierId])
+}
+
+model File {
+  id              String @id @default(cuid())
+  uploadedByUserId String?
+  organizationId   String?
+  supplierId       String?
+  taskId           String?
+  fileType         String
+  filename         String
+  storagePath      String
+  mimeType         String
+  createdAt        DateTime @default(now())
+
+  uploadedBy       User? @relation("UserFiles", fields: [uploadedByUserId], references: [id])
+  supplier         Supplier? @relation("SupplierFiles", fields: [supplierId], references: [id])
+  task             Task? @relation("TaskFiles", fields: [taskId], references: [id])
+
+  shapeUsedIn      SignItem? @relation("ShapeFile")
+  locationListUsedIn Montage? @relation("LocationListFile")
+  taskItemFiles    TaskItemFile[]
+}
+
+model TaskItemFile {
+  taskItemId String
+  fileId     String
+  taskItem   TaskItem @relation(fields: [taskItemId], references: [id], onDelete: Cascade)
+  file       File     @relation(fields: [fileId], references: [id], onDelete: Cascade)
+
+  @@id([taskItemId, fileId])
+}
+
+model AuditLog {
+  id             String @id @default(cuid())
+  organizationId String?
+  actorUserId    String?
+  actorType      AuditActorType
+  action         String
+  entityType     String
+  entityId       String
+  metadataJson   Json?
+  createdAt      DateTime @default(now())
+
+  organization   Organization? @relation(fields: [organizationId], references: [id])
+  actor          User? @relation(fields: [actorUserId], references: [id])
+}
