@@ -93,7 +93,7 @@ export async function POST(
     return NextResponse.json({ error: "Ingen matchende leverandører (MVP)" }, { status: 400 });
   }
 
-  aawait prisma.$transaction(async (tx: PrismaClient) => {
+  await prisma.$transaction(async (tx: typeof prisma) => {
   await tx.task.update({
     where: { id: task.id },
     data: { status: "sent", sentAt: new Date() },
@@ -117,6 +117,7 @@ export async function POST(
     },
   });
 });
+
 
 
   return NextResponse.json({ ok: true, invited: matched.length });
