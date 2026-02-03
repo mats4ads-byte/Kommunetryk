@@ -8,6 +8,7 @@ datasource db {
 }
 
 enum RoleKey {
+  platform_admin
   org_admin
   org_user
   supplier_user
