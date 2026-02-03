@@ -7,13 +7,6 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-enum RoleKey {
-  platform_admin
-  org_admin
-  org_user
-  supplier_user
-}
-
 enum SupplierStatus {
   pending
   approved
